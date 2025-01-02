@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Web App</title>
+    <!-- Lien vers Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script>
+        // Fonction pour récupérer et afficher les données de Redis
+        function loadData() {
+            fetch('/api/get')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('data-table-body');
+                    tableBody.innerHTML = ''; // Réinitialise le tableau
+
+                    // Ajouter les données récupérées
+                    for (const key in data) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${key}</td>
+                            <td>${data[key]}</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm" onclick="openUpdateModal('${key}', '${data[key]}')">Mettre à jour</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteData('${key}')">Supprimer</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    }
+                });
+        }
+
+        // Fonction pour ouvrir la fenêtre modale d'ajout
+        function openAddModal() {
+            document.getElementById('add-key').value = '';
+            document.getElementById('add-value').value = '';
+            const addModal = new bootstrap.Modal(document.getElementById('addModal'));
+            addModal.show();
+        }
+
+        // Fonction pour ajouter une clé et une valeur dans Redis via le modal
+        function addData() {
+            const key = document.getElementById('add-key').value;
+            const value = document.getElementById('add-value').value;
+
+            fetch(`/api/add?key=${key}&value=${value}`, {
+                method: 'POST'
+            }).then(response => response.text())
+            .then(message => {
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addModal'));
+                addModal.hide();
+                loadData(); // Recharger les données après l'ajout
+            });
+        }
+
+        // Fonction pour ouvrir la fenêtre modale de mise à jour
+        function openUpdateModal(key, value) {
+            document.getElementById('update-key').value = key;
+            document.getElementById('update-value').value = value;
+            const updateModal = new bootstrap.Modal(document.getElementById('updateModal'));
+            updateModal.show();
+        }
+
+        // Fonction pour mettre à jour une clé existante dans Redis via le modal
+        function updateData() {
+            const key = document.getElementById('update-key').value;
+            const value = document.getElementById('update-value').value;
+
+            fetch(`/api/update?key=${key}&value=${value}`, {
+                method: 'PUT'
+            }).then(response => response.text())
+            .then(message => {
+                const updateModal = bootstrap.Modal.getInstance(document.getElementById('updateModal'));
+                updateModal.hide();
+                loadData(); // Recharger les données après la mise à jour
+            });
+        }
+
+        // Fonction pour supprimer une clé de Redis
+		
+		function deleteData(key) {
+		    fetch(`/api/delete?key=${key}`, {
+		        method: 'DELETE'
+		    }).then(response => response.text())
+		    .then(message => {
+		        loadData(); // Recharger les données après la suppression
+		    });
+		}
+
+
+        // Charger les données au démarrage
+        window.onload = loadData;
+    </script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Redis Web App</h1>
+
+        <!-- Bouton pour ouvrir la fenêtre d'ajout -->
+        <div class="text-end mb-3">
+            <button class="btn btn-primary" onclick="openAddModal()">Ajouter une Clé</button>
+        </div>
+
+        <!-- Tableau pour afficher les données -->
+        <h3>Données Stockées dans Redis</h3>
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Clé</th>
+                    <th>Valeur</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="data-table-body">
+                <!-- Les données seront insérées ici -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modale pour l'ajout -->
+    <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addModalLabel">Ajouter une Clé</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form onsubmit="event.preventDefault();">
+                        <div class="mb-3">
+                            <label for="add-key" class="form-label">Clé :</label>
+                            <input type="text" id="add-key" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add-value" class="form-label">Valeur :</label>
+                            <input type="text" id="add-value" class="form-control" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" onclick="addData()">Ajouter</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale pour la mise à jour -->
+    <div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateModalLabel">Mettre à Jour une Clé</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form onsubmit="event.preventDefault();">
+                        <div class="mb-3">
+                            <label for="update-key" class="form-label">Clé :</label>
+                            <input type="text" id="update-key" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="update-value" class="form-label">Valeur :</label>
+                            <input type="text" id="update-value" class="form-control" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" onclick="updateData()">Mettre à jour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lien vers Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
